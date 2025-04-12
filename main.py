@@ -3,7 +3,7 @@ import os
 import re
 import asyncio
 from datetime import datetime, timedelta
-from aiogram import Bot, Dispatcher, types
+from aiogram import Bot, Dispatcher, types, F
 from aiogram.types import Message
 
 BOT_TOKEN = "7384051613:AAGritfiJRNV_ykW47QgR-q_Lk7qm6kirXs"
@@ -98,11 +98,11 @@ def should_repeat_today(repeat_str):
     return False
 
 # ===== COMMANDS =====
-@dp.message(commands=["start"])
+@dp.message(F.text.lower() == "/start")
 async def handle_start(message: Message):
     await message.answer("✅ Бот запущен. Отправь задачу в формате:\n\nНазвание\n11.05.2025\nПриоритет (красный/высокий и т.д.)\n@username\n(опционально) период повторения: ежемесячно 3 числа")
 
-@dp.message(commands=["задачи"])
+@dp.message(F.text.lower().in_(["/задачи", "задачи"]))
 async def show_tasks(message: Message):
     user = message.from_user.username
     tasks = restore_recurring_tasks(load_tasks())
