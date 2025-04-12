@@ -1,60 +1,96 @@
-from aiogram import Bot, Dispatcher, types
-from aiogram.utils import executor
-from aiogram.types import WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 import json
 import os
-
-from config import BOT_TOKEN, ADMIN_USERNAMES
-from functions import get_active_tasks, save_task, load_tasks
+import re
+from aiogram import Bot, Dispatcher, types
+from aiogram.utils import executor
+from config import BOT_TOKEN
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
 
+DATA_FILE = "tasks.json"
+
+# Загружаем задачи из файла
+def load_tasks():
+    if not os.path.exists(DATA_FILE):
+        return []
+    with open(DATA_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+# Сохраняем задачи в файл
+def save_tasks(tasks):
+    with open(DATA_FILE, "w", encoding="utf-8") as f:
+        json.dump(tasks, f, indent=2, ensure_ascii=False)
+
+# Генерация уникального ID
+def generate_task_id(tasks):
+    existing_ids = [int(t["id"]) for t in tasks if "id" in t]
+    return str(max(existing_ids) + 1) if existing_ids else "101"
+
+# Проверка готовности задачи
+def parse_completion(message_text):
+    match = re.match(r"(\d+)\s+готово", message_text.lower())
+    return match.group(1) if match else None
+
+# Разбор входящего задания
+def parse_task_text(text):
+    lines = text.strip().split("\n")
+    if len(lines) < 4:
+        return None
+    return {
+        "title": lines[0].strip(),
+        "deadline": lines[1].strip(),
+        "priority": lines[2].strip(),
+        "assignee": lines[3].strip().lower(),
+    }
+
 @dp.message_handler(commands=["start"])
-async def start_handler(message: types.Message):
-    await message.answer("✅ Бот работает! Напиши /webapp чтобы открыть интерфейс задач.")
+async def handle_start(message: types.Message):
+    await message.answer("✅ Бот запущен. Просто отправь задачу в формате:\n\nНазвание\n11.05.2025\nКрасный\n@username")
 
-@dp.message_handler(commands=["webapp", "web"])
-async def open_webapp(message: types.Message):
-    keyboard = InlineKeyboardMarkup().add(
-        InlineKeyboardButton(
-            text="Открыть интерфейс задач 🧩",
-            web_app=WebAppInfo(url="https://granghaal.github.io/telegram-app/")  # Замени на свою ссылку
-        )
-    )
-    await message.answer("Нажми кнопку ниже, чтобы открыть интерфейс:", reply_markup=keyboard)
+@dp.message_handler()
+async def handle_task_message(message: types.Message):
+    text = message.text.strip()
+    user = message.from_user.username
+    tasks = load_tasks()
 
-@dp.message_handler(commands=["планерка"])
-async def send_task_summary(message: types.Message):
-    if message.from_user.username not in ADMIN_USERNAMES:
-        await message.reply("⛔ Только для администратора.")
+    # Обработка завершения задачи
+    completed_id = parse_completion(text)
+    if completed_id:
+        updated = [t for t in tasks if t["id"] != completed_id]
+        if len(updated) < len(tasks):
+            save_tasks(updated)
+            await message.answer(f"📦 Задача {completed_id} отправлена в архив.")
+        else:
+            await message.answer("❗Задача не найдена.")
         return
 
-    tasks = get_active_tasks()
-    text = "📂 Актуальные задачи:\n"
+    # Показ задач по команде
+    if text.lower() in ["/задачи", "задачи"]:
+        user_tasks = [t for t in tasks if t["author"] == f"@{user}" or t["assignee"] == f"@{user}"]
+        if not user_tasks:
+            await message.answer("✅ У вас нет активных задач.")
+            return
+        response = "📋 Актуальные задачи:\n"
+        for t in user_tasks:
+            response += f"🔹 {t['id']} — {t['title']} — 📅 {t['deadline']} 🟥 {t['priority']} 👤 {t['assignee']}\n"
+        await message.answer(response)
+        return
 
-    if not tasks:
-        text += "✅ Все задачи выполнены!"
-    else:
-        for t in tasks:
-            deadline = t.get("deadline", "не указано")
-            priority = t.get("priority", "обычный")
-            category = t.get("category", "без категории")
-            author = t.get("author", "неизвестен")
-            title = t.get("title", "без названия")
-            text += f"\n• {title} — 📁 {category} 🔴 {priority} ⏰ {deadline} 🧑‍💼 {author}"
+    # Обработка новой задачи
+    parsed = parse_task_text(text)
+    if not parsed:
+        await message.answer("❌ Неверный формат. Отправь:\nНазвание\n11.05.2025\nПриоритет\n@username")
+        return
 
-    await message.answer(text)
-
-@dp.message_handler(content_types=types.ContentType.WEB_APP_DATA)
-async def receive_webapp_data(message: types.Message):
-    try:
-        data = json.loads(message.web_app_data.data)
-        save_task(data)
-        await message.answer("✅ Задача получена и сохранена.")
-    except Exception as e:
-        await message.answer(f"❌ Ошибка при сохранении: {e}")
-
-if __name__ == "__main__":
-    print("✅ Бот запущен. Ожидаем команды...")
-    executor.start_polling(dp, skip_updates=True)
+    new_task = {
+        "id": generate_task_id(tasks),
+        "title": parsed["title"],
+        "deadline": parsed["deadline"],
+        "priority": parsed["priority"],
+        "assignee": parsed["assignee"],
+        "author": f"@{user}",
+    }
+    tasks.append(new_task)
+    save_tasks(tasks)
+    await message.answer(f"✅ Задача добавлена (ID: {new_task['id']})")
