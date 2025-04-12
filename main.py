@@ -12,7 +12,7 @@ from aiogram.types import Message
 BOT_TOKEN = "7384051613:AAGritfiJRNV_ykW47QgR-q_Lk7qm6kirXs"
 
 bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher()
+dp = Dispatcher(bot=bot)
 
 DATA_FILE = "tasks.json"
 SETTINGS_FILE = "settings.json"
@@ -64,6 +64,13 @@ def get_priority_emoji(priority_text):
     return PRIORITY_MAP.get(priority_text.lower(), "🔘")
 
 # ===== COMMANDS =====
+
+async def main():
+    print("🤖 Бот запущен...")
+    await dp.start_polling()
+
+if __name__ == "__main__":
+    asyncio.run(main())
 @dp.message(F.text.lower() == "/start")
 async def handle_start(message: Message):
     await message.answer(
