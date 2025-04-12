@@ -1,83 +1,80 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const taskForm = document.getElementById("task-form");
-  const titleInput = document.getElementById("title");
-  const deadlineInput = document.getElementById("deadline");
-  const prioritySelect = document.getElementById("priority");
-  const categoryInput = document.getElementById("category");
-  const taskList = document.getElementById("task-list");
+const tg = window.Telegram.WebApp;
+tg.expand();
 
-  const filterStatus = document.getElementById("filter-status");
-  const filterPriority = document.getElementById("filter-priority");
-  const filterCategory = document.getElementById("filter-category");
+const taskForm = document.getElementById("task-form");
+const taskList = document.getElementById("task-list");
+const filterPriority = document.getElementById("filter-priority");
+const filterCategory = document.getElementById("filter-category");
+const resetFilters = document.getElementById("reset-filters");
 
-  let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+let tasks = [];
 
-  function saveTasks() {
-    localStorage.setItem("tasks", JSON.stringify(tasks));
-  }
+taskForm.addEventListener("submit", (e) => {
+  e.preventDefault();
 
-  function renderTasks() {
-    taskList.innerHTML = "";
+  const title = document.getElementById("title").value.trim();
+  const category = document.getElementById("category").value;
+  const priority = document.getElementById("priority").value;
+  const deadline = document.getElementById("deadline").value;
 
-    const statusFilter = filterStatus.value;
-    const priorityFilter = filterPriority.value;
-    const categoryFilter = filterCategory.value.toLowerCase();
+  if (!title) return;
 
-    const filtered = tasks.filter((task) => {
-      const statusMatch = statusFilter === "all" || task.status === statusFilter;
-      const priorityMatch = priorityFilter === "any" || task.priority === priorityFilter;
-      const categoryMatch = !categoryFilter || task.category.toLowerCase().includes(categoryFilter);
-      return statusMatch && priorityMatch && categoryMatch;
-    });
+  const task = {
+    title,
+    category: category || "Без категории",
+    priority: priority || "Обычный",
+    deadline: deadline || "Не указано",
+    author: tg.initDataUnsafe?.user?.username || "неизвестен",
+    created_at: new Date().toISOString(),
+  };
 
-    filtered.forEach((task, index) => {
-      const item = document.createElement("div");
-      item.classList.add("task-item");
-      if (task.priority === "high") item.classList.add("high");
-      if (task.priority === "medium") item.classList.add("medium");
+  tasks.push(task);
+  saveToTelegram(task);
+  renderTasks();
 
-      const top = document.createElement("div");
-      top.className = "task-title";
-      top.textContent = task.title;
+  taskForm.reset();
+});
 
-      const bottom = document.createElement("div");
-      bottom.className = "task-meta";
+function saveToTelegram(task) {
+  const data = {
+    type: "new_task",
+    payload: task,
+  };
+  tg.sendData(JSON.stringify(data));
+}
 
-      const left = document.createElement("div");
-      left.className = "meta-left";
-      left.innerHTML = `
-        <span class="meta-tag">${task.category || "Без категории"}</span>
-        <span class="meta-date">${task.deadline || "Без срока"}</span>
-      `;
+function renderTasks() {
+  taskList.innerHTML = "";
 
-      const right = document.createElement("div");
-      right.className = "meta-right";
-      right.textContent = task.priority === "high" ? "Высокий" : task.priority === "medium" ? "Средний" : "Обычный";
-
-      bottom.append(left, right);
-      item.append(top, bottom);
-      taskList.appendChild(item);
-    });
-  }
-
-  taskForm.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const task = {
-      title: titleInput.value.trim() || "Без названия",
-      deadline: deadlineInput.value,
-      priority: prioritySelect.value,
-      category: categoryInput.value.trim(),
-      status: "active",
-    };
-    tasks.push(task);
-    saveTasks();
-    renderTasks();
-    taskForm.reset();
+  const filtered = tasks.filter((t) => {
+    return (
+      (!filterPriority.value || t.priority === filterPriority.value) &&
+      (!filterCategory.value || t.category === filterCategory.value)
+    );
   });
 
-  [filterStatus, filterPriority, filterCategory].forEach((el) =>
-    el.addEventListener("input", renderTasks)
-  );
+  filtered.forEach((t) => {
+    const el = document.createElement("div");
+    el.className = "task";
 
+    el.innerHTML = `
+      <div class="task-title">${t.title}</div>
+      <div class="task-meta">
+        <span class="meta category">${t.category}</span>
+        <span class="meta priority ${t.priority.toLowerCase()}">${t.priority}</span>
+        <span class="meta deadline">${t.deadline}</span>
+        <span class="meta author">@${t.author}</span>
+      </div>
+    `;
+
+    taskList.appendChild(el);
+  });
+}
+
+filterPriority.addEventListener("change", renderTasks);
+filterCategory.addEventListener("change", renderTasks);
+resetFilters.addEventListener("click", () => {
+  filterPriority.value = "";
+  filterCategory.value = "";
   renderTasks();
 });
