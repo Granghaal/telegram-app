@@ -1,0 +1,2 @@
+BOT_TOKEN = "7384051613:AAGritfiJRNV_ykW47QgR-q_Lk7qm6kirXs"
+ADMIN_USERNAMES = ["dooomsday"]
