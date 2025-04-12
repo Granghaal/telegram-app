@@ -12,7 +12,7 @@ from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, C
 BOT_TOKEN = "7384051613:AAGritfiJRNV_ykW47QgR-q_Lk7qm6kirXs"
 
 bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher()
+dp = Dispatcher(bot=bot)  # Исправлено: передаём bot в Dispatcher
 
 DATA_FILE = "tasks.json"
 SETTINGS_FILE = "settings.json"
@@ -74,10 +74,27 @@ def get_repeat_dates():
 
 def get_task_keyboard(task_id):
     kb = InlineKeyboardMarkup()
-    kb.add(InlineKeyboardButton(text="✅ Готово", callback_data=f"done:{task_id}"))
+    kb.row(
+        InlineKeyboardButton(text="✅ Готово", callback_data=f"done:{task_id}"),
+        InlineKeyboardButton(text="📝 Изменить", callback_data=f"edit:{task_id}"),
+        InlineKeyboardButton(text="❌ Удалить", callback_data=f"delete:{task_id}")
+    )
     return kb
 
 # ===== CALLBACK =====
+@dp.callback_query(F.data.startswith("edit:"))
+async def edit_task(callback: CallbackQuery):
+    task_id = callback.data.split(":")[1]
+    await callback.answer("Функция редактирования в разработке.")
+
+@dp.callback_query(F.data.startswith("delete:"))
+async def delete_task(callback: CallbackQuery):
+    task_id = callback.data.split(":")[1]
+    tasks = load_tasks()
+    tasks = [t for t in tasks if t["id"] != task_id]
+    save_tasks(tasks)
+    await callback.answer("Задача удалена.")
+    await callback.message.edit_text("❌ Задача удалена.")
 @dp.callback_query(F.data.startswith("done:"))
 async def mark_done(callback: CallbackQuery):
     task_id = callback.data.split(":")[1]
@@ -87,7 +104,7 @@ async def mark_done(callback: CallbackQuery):
             t["done"] = True
     save_tasks(tasks)
     await callback.answer("Задача завершена и перемещена в архив.")
-    await callback.message.edit_reply_markup(reply_markup=None)
+    await callback.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(inline_keyboard=[]))
 
 # ===== COMMANDS =====
 @dp.message(F.text.lower() == "/start")
@@ -102,7 +119,7 @@ async def handle_start(message: Message):
 async def show_tasks(message: Message):
     user = message.from_user.username
     text = message.text.strip()
-    match = re.match(r"задачи\\s+(@\\w+)?(.*)?", text.lower())
+    match = re.match(r"задачи\s+(@\w+)?(.*)?", text.lower())
     target_user = match.group(1).lower() if match and match.group(1) else f"@{user}"
     filter_arg = match.group(2).strip() if match and match.group(2) else ""
 
