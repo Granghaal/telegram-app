@@ -92,10 +92,12 @@ async def edit_task(callback: CallbackQuery):
 async def delete_task(callback: CallbackQuery):
     task_id = callback.data.split(":")[1]
     tasks = load_tasks()
-    tasks = [t for t in tasks if t["id"] != task_id]
+    for t in tasks:
+        if t["id"] == task_id:
+            t["done"] = True
     save_tasks(tasks)
-    await callback.answer("Задача удалена.")
-    await callback.message.edit_text("❌ Задача удалена.")
+    await callback.answer("Задача перемещена в архив.")
+    await callback.message.edit_text("❌ Задача отправлена в архив.")
 
 @dp.callback_query(F.data.startswith("done:"))
 async def mark_done(callback: CallbackQuery):
@@ -161,7 +163,7 @@ async def show_archive(message: Message):
         text += f"☑️ {t['id']} — {t['title']} — 📅 {t['deadline']} {get_priority_emoji(t['priority'])} {t['priority']} 👤 {t['assignee']}\n"
     await message.answer(text)
 
-@dp.message(F.text.lower() == "очистить архив")
+@dp.message(F.text.lower() == "очистить архив" or F.text.lower() == "удалить все")
 async def clear_archive(message: Message):
     tasks = load_tasks()
     tasks = [t for t in tasks if not t.get("done")]
