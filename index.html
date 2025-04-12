@@ -2,16 +2,56 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Менеджер задач</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Задачи</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="app">
-    <h1>📋 Задачи</h1>
-    <input type="text" id="taskInput" placeholder="Новая задача..." />
-    <button onclick="addTask()">Добавить</button>
-    <ul id="taskList"></ul>
+  <div class="app">
+    <aside class="sidebar">
+      <h2>Фильтр</h2>
+      <label>Статус
+        <select id="filter-status">
+          <option>All</option>
+          <option>Active</option>
+          <option>Completed</option>
+        </select>
+      </label>
+      <label>Приоритет
+        <select id="filter-priority">
+          <option>Any</option>
+          <option>High</option>
+          <option>Medium</option>
+          <option>Low</option>
+        </select>
+      </label>
+      <label>Категория
+        <input id="filter-category" type="text" placeholder="Любая" />
+      </label>
+      <button id="reset-filters">Сбросить</button>
+    </aside>
+
+    <main class="main">
+      <header class="header">
+        <h1>📄 Задачи</h1>
+        <button id="new-task">➕ Новая задача</button>
+      </header>
+
+      <div id="task-form" class="form hidden">
+        <input id="title" placeholder="Название" />
+        <input id="category" placeholder="Категория" />
+        <input id="deadline" type="date" />
+        <select id="priority">
+          <option>Low</option>
+          <option selected>Medium</option>
+          <option>High</option>
+        </select>
+        <input id="author" placeholder="Автор" />
+        <button id="save-task">Сохранить</button>
+      </div>
+
+      <ul id="task-list" class="task-list"></ul>
+    </main>
   </div>
   <script src="script.js"></script>
 </body>
