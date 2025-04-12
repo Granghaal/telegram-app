@@ -7,7 +7,7 @@ import re
 import asyncio
 from datetime import datetime, timedelta
 from aiogram import Bot, Dispatcher, types, F
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 
 BOT_TOKEN = "7384051613:AAGritfiJRNV_ykW47QgR-q_Lk7qm6kirXs"
 
@@ -72,6 +72,23 @@ def get_repeat_dates():
         "еженедельно": today.strftime("%A").lower()
     }
 
+def get_task_keyboard(task_id):
+    kb = InlineKeyboardMarkup()
+    kb.add(InlineKeyboardButton(text="✅ Готово", callback_data=f"done:{task_id}"))
+    return kb
+
+# ===== CALLBACK =====
+@dp.callback_query(F.data.startswith("done:"))
+async def mark_done(callback: CallbackQuery):
+    task_id = callback.data.split(":")[1]
+    tasks = load_tasks()
+    for t in tasks:
+        if t["id"] == task_id:
+            t["done"] = True
+    save_tasks(tasks)
+    await callback.answer("Задача завершена и перемещена в архив.")
+    await callback.message.edit_reply_markup(reply_markup=None)
+
 # ===== COMMANDS =====
 @dp.message(F.text.lower() == "/start")
 async def handle_start(message: Message):
@@ -108,10 +125,9 @@ async def show_tasks(message: Message):
 
     tasks = sorted(tasks, key=lambda x: list(PRIORITY_MAP).index(x["priority"]) if x.get("priority") in PRIORITY_MAP else 99)
 
-    text = f"📋 Актуальные задачи для {target_user}:\n"
     for t in tasks:
-        text += f"🔹 {t['id']} — {t['title']} — 📅 {t['deadline']} {get_priority_emoji(t['priority'])} {t['priority']} 👤 {t['assignee']}\n"
-    await message.answer(text)
+        text = f"🔹 {t['id']} — {t['title']} — 📅 {t['deadline']} {get_priority_emoji(t['priority'])} {t['priority']} 👤 {t['assignee']}"
+        await message.answer(text, reply_markup=get_task_keyboard(t["id"]))
 
 @dp.message(F.text.lower() == "архив")
 async def show_archive(message: Message):
@@ -167,7 +183,7 @@ async def handle_general(message: Message):
     }
     tasks.append(new_task)
     save_tasks(tasks)
-    await message.answer(f"✅ Задача добавлена (ID: {new_task['id']})")
+    await message.answer(f"✅ Задача добавлена (ID: {new_task['id']})", reply_markup=get_task_keyboard(new_task["id"]))
 
 async def main():
     print("🤖 Бот запущен...")
