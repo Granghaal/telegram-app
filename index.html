@@ -7,52 +7,44 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="app">
-    <aside class="sidebar">
-      <h2>Фильтр</h2>
-      <label>Статус
-        <select id="filter-status">
-          <option>All</option>
-          <option>Active</option>
-          <option>Completed</option>
-        </select>
-      </label>
-      <label>Приоритет
-        <select id="filter-priority">
-          <option>Any</option>
-          <option>High</option>
-          <option>Medium</option>
-          <option>Low</option>
-        </select>
-      </label>
-      <label>Категория
-        <input id="filter-category" type="text" placeholder="Любая" />
-      </label>
+  <div class="container">
+    <h1>Задачи</h1>
+
+    <form id="task-form">
+      <input type="text" id="title" placeholder="Название задачи" required />
+      <select id="category">
+        <option value="">Категория</option>
+        <option value="Работа">Работа</option>
+        <option value="Личное">Личное</option>
+      </select>
+      <select id="priority">
+        <option value="">Приоритет</option>
+        <option value="Высокий">Высокий</option>
+        <option value="Средний">Средний</option>
+        <option value="Низкий">Низкий</option>
+      </select>
+      <input type="date" id="deadline" />
+      <button type="submit">Добавить</button>
+    </form>
+
+    <div class="filters">
+      <select id="filter-priority">
+        <option value="">Все приоритеты</option>
+        <option value="Высокий">Высокий</option>
+        <option value="Средний">Средний</option>
+        <option value="Низкий">Низкий</option>
+      </select>
+      <select id="filter-category">
+        <option value="">Все категории</option>
+        <option value="Работа">Работа</option>
+        <option value="Личное">Личное</option>
+      </select>
       <button id="reset-filters">Сбросить</button>
-    </aside>
+    </div>
 
-    <main class="main">
-      <header class="header">
-        <h1>📄 Задачи</h1>
-        <button id="new-task">➕ Новая задача</button>
-      </header>
-
-      <div id="task-form" class="form hidden">
-        <input id="title" placeholder="Название" />
-        <input id="category" placeholder="Категория" />
-        <input id="deadline" type="date" />
-        <select id="priority">
-          <option>Low</option>
-          <option selected>Medium</option>
-          <option>High</option>
-        </select>
-        <input id="author" placeholder="Автор" />
-        <button id="save-task">Сохранить</button>
-      </div>
-
-      <ul id="task-list" class="task-list"></ul>
-    </main>
+    <div id="task-list"></div>
   </div>
+
   <script src="script.js"></script>
 </body>
 </html>
