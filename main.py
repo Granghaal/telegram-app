@@ -2,12 +2,9 @@ import json
 import os
 import re
 import asyncio
-import nest_asyncio
 from datetime import datetime, timedelta
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import Message
-
-nest_asyncio.apply()
 
 BOT_TOKEN = "7384051613:AAGritfiJRNV_ykW47QgR-q_Lk7qm6kirXs"
 
