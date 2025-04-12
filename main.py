@@ -12,7 +12,7 @@ from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, C
 BOT_TOKEN = "7384051613:AAGritfiJRNV_ykW47QgR-q_Lk7qm6kirXs"
 
 bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher(bot=bot)  # Исправлено: передаём bot в Dispatcher
+dp = Dispatcher(bot=bot)
 
 DATA_FILE = "tasks.json"
 SETTINGS_FILE = "settings.json"
@@ -82,29 +82,29 @@ def get_task_keyboard(task_id):
     return kb
 
 # ===== CALLBACK =====
-@dp.callback_query(F.data.startswith("edit:"))
-async def edit_task(callback: CallbackQuery):
-    task_id = callback.data.split(":")[1]
-    await callback.answer("Функция редактирования в разработке.")
+@dp.callback_query()
+async def handle_callbacks(callback: CallbackQuery):
+    data = callback.data
+    task_id = data.split(":")[1] if ":" in data else None
 
-@dp.callback_query(F.data.startswith("delete:"))
-async def delete_task(callback: CallbackQuery):
-    task_id = callback.data.split(":")[1]
-    tasks = load_tasks()
-    tasks = [t for t in tasks if t["id"] != task_id]
-    save_tasks(tasks)
-    await callback.answer("Задача удалена.")
-    await callback.message.edit_text("❌ Задача удалена.")
-@dp.callback_query(F.data.startswith("done:"))
-async def mark_done(callback: CallbackQuery):
-    task_id = callback.data.split(":")[1]
-    tasks = load_tasks()
-    for t in tasks:
-        if t["id"] == task_id:
-            t["done"] = True
-    save_tasks(tasks)
-    await callback.answer("Задача завершена и перемещена в архив.")
-    await callback.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(inline_keyboard=[]))
+    if data.startswith("done:") and task_id:
+        tasks = load_tasks()
+        for t in tasks:
+            if t["id"] == task_id:
+                t["done"] = True
+        save_tasks(tasks)
+        await callback.answer("Задача завершена и перемещена в архив.")
+        await callback.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(inline_keyboard=[]))
+
+    elif data.startswith("delete:") and task_id:
+        tasks = load_tasks()
+        tasks = [t for t in tasks if t["id"] != task_id]
+        save_tasks(tasks)
+        await callback.answer("Задача удалена.")
+        await callback.message.edit_text("❌ Задача удалена.")
+
+    elif data.startswith("edit:") and task_id:
+        await callback.answer("Функция редактирования в разработке.")
 
 # ===== COMMANDS =====
 @dp.message(F.text.lower() == "/start")
@@ -128,8 +128,8 @@ async def show_tasks(message: Message):
 
     if filter_arg:
         if filter_arg.lower() in PRIORITY_MAP:
-        mapped = filter_arg.lower()
-        tasks = [t for t in tasks if t.get("priority", "").lower() == mapped]
+            mapped = filter_arg.lower()
+            tasks = [t for t in tasks if t.get("priority", "").lower() == mapped]
         else:
             try:
                 date_filter = datetime.strptime(filter_arg, "%d.%m.%Y").date()
