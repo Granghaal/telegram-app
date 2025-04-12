@@ -1,0 +1,28 @@
+body {
+  font-family: sans-serif;
+  background: #f7f7f7;
+  color: #333;
+  padding: 20px;
+}
+#app {
+  max-width: 500px;
+  margin: 0 auto;
+}
+input[type="text"] {
+  width: 70%;
+  padding: 10px;
+}
+button {
+  padding: 10px 15px;
+  margin-left: 5px;
+}
+ul {
+  list-style: none;
+  padding: 0;
+}
+li {
+  margin: 5px 0;
+  background: white;
+  padding: 10px;
+  border-radius: 5px;
+}
