@@ -1,3 +1,6 @@
+# NOTE: This code requires Python environment with ssl support for aiogram (via aiohttp).
+# If running in a sandbox or limited environment, ensure ssl module is available.
+
 import json
 import os
 import re
@@ -88,7 +91,6 @@ def should_repeat_today(repeat_str):
     weekday = today.strftime("%A").lower()
     day = today.day
     month = today.month
-
     if "еженедельно" in repeat_str:
         return weekday in repeat_str
     elif "ежемесячно" in repeat_str:
@@ -112,9 +114,11 @@ def update_task_by_id(tasks, task_id, lines):
 # ===== COMMANDS =====
 @dp.message(F.text.lower() == "/start")
 async def handle_start(message: Message):
-    await message.answer("✅ Бот запущен. Просто напишите задачу или используйте формат:
-
-Название\n11.05.2025\nПриоритет (красный/высокий и т.д.)\n@username\n(опционально) период повторения: ежемесячно 3 числа")
+    await message.answer(
+        "✅ Бот запущен. Просто напишите задачу или используйте формат:\n\n"
+        "Название\n11.05.2025\nПриоритет (красный/высокий и т.д.)\n@username\n"
+        "(опционально) период повторения: ежемесячно 3 числа"
+    )
 
 @dp.message(F.text.lower().in_(["/задачи", "задачи"]))
 async def show_tasks(message: Message):
