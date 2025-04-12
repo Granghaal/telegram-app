@@ -1,12 +1,20 @@
 import json
 import os
 import re
+import asyncio
+import nest_asyncio
 from aiogram import Bot, Dispatcher, types
-from aiogram.utils import executor
-from config import BOT_TOKEN
+from aiogram.filters import CommandStart
+from aiogram.types import Message
+
+# Применяем nest_asyncio, чтобы разрешить повторный запуск event loop
+nest_asyncio.apply()
+
+# Удаляем импорт из config, токен вшит напрямую
+BOT_TOKEN = "7384051613:AAGritfiJRNV_ykW47QgR-q_Lk7qm6kirXs"
 
 bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher(bot)
+dp = Dispatcher()
 
 DATA_FILE = "tasks.json"
 
@@ -44,12 +52,12 @@ def parse_task_text(text):
         "assignee": lines[3].strip().lower(),
     }
 
-@dp.message_handler(commands=["start"])
-async def handle_start(message: types.Message):
+@dp.message(CommandStart())
+async def handle_start(message: Message):
     await message.answer("✅ Бот запущен. Просто отправь задачу в формате:\n\nНазвание\n11.05.2025\nКрасный\n@username")
 
-@dp.message_handler()
-async def handle_task_message(message: types.Message):
+@dp.message()
+async def handle_task_message(message: Message):
     text = message.text.strip()
     user = message.from_user.username
     tasks = load_tasks()
@@ -73,7 +81,7 @@ async def handle_task_message(message: types.Message):
             return
         response = "📋 Актуальные задачи:\n"
         for t in user_tasks:
-            response += f"🔹 {t['id']} — {t['title']} — 📅 {t['deadline']} 🟥 {t['priority']} 👤 {t['assignee']}\n"
+            response += f"🔹 {t['id']} — {t['title']} — 📅 {t['deadline']} 🔵 {t['priority']} 👤 {t['assignee']}\n"
         await message.answer(response)
         return
 
@@ -94,3 +102,12 @@ async def handle_task_message(message: types.Message):
     tasks.append(new_task)
     save_tasks(tasks)
     await message.answer(f"✅ Задача добавлена (ID: {new_task['id']})")
+
+async def main():
+    print("\n📅 Бот запущен. Ожидаем задачи...")
+    await dp.start_polling(bot)
+
+# Вместо asyncio.run, вызываем main напрямую через loop
+loop = asyncio.get_event_loop()
+loop.create_task(main())
+loop.run_forever()
