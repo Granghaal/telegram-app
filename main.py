@@ -97,10 +97,24 @@ def should_repeat_today(repeat_str):
         return str(day) in repeat_str and month in [1, 4, 7, 10]
     return False
 
+def update_task_by_id(tasks, task_id, lines):
+    for t in tasks:
+        if t["id"] == task_id:
+            for line in lines:
+                line = line.strip()
+                if re.match(r"\d{2}\.\d{2}\.\d{4}|\d{1,2}\s+\w+", line):
+                    t["deadline"] = line
+                elif line.lower() in PRIORITY_MAP:
+                    t["priority"] = line.lower()
+            return True
+    return False
+
 # ===== COMMANDS =====
 @dp.message(F.text.lower() == "/start")
 async def handle_start(message: Message):
-    await message.answer("✅ Бот запущен. Отправь задачу в формате:\n\nНазвание\n11.05.2025\nПриоритет (красный/высокий и т.д.)\n@username\n(опционально) период повторения: ежемесячно 3 числа")
+    await message.answer("✅ Бот запущен. Просто напишите задачу или используйте формат:
+
+Название\n11.05.2025\nПриоритет (красный/высокий и т.д.)\n@username\n(опционально) период повторения: ежемесячно 3 числа")
 
 @dp.message(F.text.lower().in_(["/задачи", "задачи"]))
 async def show_tasks(message: Message):
@@ -133,24 +147,49 @@ async def handle_message(message: Message):
         await message.answer("❗Задача не найдена.")
         return
 
-    parsed = parse_task_text(text)
-    if not parsed:
-        await message.answer("❌ Неверный формат.\nНазвание\n11.05.2025\nПриоритет\n@username\n(опционально) повторение")
+    if re.match(r"^\d+$", text):
+        await message.answer("ℹ️ Отправь следом приоритет и дедлайн для задачи в формате:\nКрасный\n15.04.2025")
         return
 
-    new_task = {
-        "id": generate_task_id(tasks),
-        "title": parsed["title"],
-        "deadline": parsed["deadline"],
-        "priority": parsed["priority"],
-        "assignee": parsed["assignee"],
-        "repeat": parsed["repeat"],
-        "author": f"@{user}",
-        "done": False
-    }
-    tasks.append(new_task)
-    save_tasks(tasks)
-    await message.answer(f"✅ Задача добавлена (ID: {new_task['id']})")
+    if re.match(r"^\d+\n", text):
+        lines = text.split("\n")
+        task_id = lines[0].strip()
+        if update_task_by_id(tasks, task_id, lines[1:]):
+            save_tasks(tasks)
+            await message.answer(f"✏️ Задача {task_id} обновлена.")
+        else:
+            await message.answer("❗Не удалось найти задачу для обновления.")
+        return
+
+    parsed = parse_task_text(text)
+    if parsed:
+        new_task = {
+            "id": generate_task_id(tasks),
+            "title": parsed["title"],
+            "deadline": parsed["deadline"],
+            "priority": parsed["priority"],
+            "assignee": parsed["assignee"],
+            "repeat": parsed["repeat"],
+            "author": f"@{user}",
+            "done": False
+        }
+        tasks.append(new_task)
+        save_tasks(tasks)
+        await message.answer(f"✅ Задача добавлена (ID: {new_task['id']})")
+    else:
+        new_task = {
+            "id": generate_task_id(tasks),
+            "title": text,
+            "deadline": "не указано",
+            "priority": "обычный",
+            "assignee": f"@{user}",
+            "repeat": "",
+            "author": f"@{user}",
+            "done": False
+        }
+        tasks.append(new_task)
+        save_tasks(tasks)
+        await message.answer(f"✅ Задача добавлена (ID: {new_task['id']})")
 
 # ===== DAILY REMINDER (OPTIONAL) =====
 async def daily_task_reminder():
