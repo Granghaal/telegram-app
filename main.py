@@ -124,11 +124,12 @@ async def show_tasks(message: Message):
     filter_arg = match.group(2).strip() if match and match.group(2) else ""
 
     tasks = load_tasks()
-    tasks = [t for t in tasks if not t.get("done") and (t["author"] == target_user or t["assignee"] == target_user)]
+    tasks = [t for t in tasks if not t.get("done") and (t.get("author") == target_user or t.get("assignee") == target_user)]
 
     if filter_arg:
-        if filter_arg in PRIORITY_MAP:
-            tasks = [t for t in tasks if t.get("priority", "") == filter_arg]
+        if filter_arg.lower() in PRIORITY_MAP:
+        mapped = filter_arg.lower()
+        tasks = [t for t in tasks if t.get("priority", "").lower() == mapped]
         else:
             try:
                 date_filter = datetime.strptime(filter_arg, "%d.%m.%Y").date()
@@ -140,7 +141,7 @@ async def show_tasks(message: Message):
         await message.answer(f"✅ Нет активных задач для {target_user}.")
         return
 
-    tasks = sorted(tasks, key=lambda x: list(PRIORITY_MAP).index(x["priority"]) if x.get("priority") in PRIORITY_MAP else 99)
+    tasks = sorted(tasks, key=lambda x: list(PRIORITY_MAP).index(x["priority"].lower()) if x.get("priority", "").lower() in PRIORITY_MAP else 99)
 
     for t in tasks:
         text = f"🔹 {t['id']} — {t['title']} — 📅 {t['deadline']} {get_priority_emoji(t['priority'])} {t['priority']} 👤 {t['assignee']}"
